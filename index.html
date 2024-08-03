@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Script PJ</title>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
     <style>
         body, html {
             margin: 0;
@@ -226,6 +228,14 @@
         .button:hover {
             background-color: #5a6eaf;
         }
+        #output {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -244,9 +254,12 @@
     </div>
     <div class="container">
         <h1 id="message">Nothing here yet. Next thing I start working on will be posted...</h1>
-        <button class="button" id="downloadBtn" onclick="downloadScript()" style="display: none;">Download Script</button>
+        <button class="button" id="runBtn" onclick="runPythonScript()" style="display: none;">Run Python Script</button>
+        <div id="output"></div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <py-script>
+        # Python code will be inserted here
+    </py-script>
     <script>
         function generateUUID(e, t) {
             let n = "";
@@ -261,34 +274,45 @@
             return text.split("\n").map(line => `${line} # ${generateUUID(1e5, 1e6)}`).join("\n");
         }
 
-        async function downloadScript() {
+        async function runPythonScript() {
             try {
                 const pythonCode = await fetchPythonCode();
-                const zip = new JSZip();
-                const fileName = `${crypto.randomUUID()}.py`;
-                zip.file(fileName, pythonCode);
-                zip.generateAsync({ type: "blob" }).then(blob => {
-                    const zipFileName = `${crypto.randomUUID()}.zip`;
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = zipFileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                });
+                const pyScriptElement = document.querySelector('py-script');
+                pyScriptElement.innerHTML = `
+import sys
+from io import StringIO
+
+# Redirect stdout to capture print statements
+old_stdout = sys.stdout
+sys.stdout = StringIO()
+
+# Your fetched Python code here
+${pythonCode}
+
+# Get the captured output
+output = sys.stdout.getvalue()
+
+# Restore stdout
+sys.stdout = old_stdout
+
+# Display the output
+js.document.getElementById('output').textContent = output
+                `;
+
+                // Force PyScript to rerun the code
+                pyScriptElement.dispatchEvent(new Event('py-rerun'));
             } catch (error) {
-                console.error("Error creating ZIP file:", error);
+                console.error("Error running Python script:", error);
+                document.getElementById('output').textContent = "Error: " + error.message;
             }
         }
 
         window.onload = function() {
             if (window.location.href.includes("polar.contact/rust")) {
                 document.getElementById("message").textContent = "Everything I do with rust is here...";
-                document.getElementById("downloadBtn").style.display = "inline-block";
+                document.getElementById("runBtn").style.display = "inline-block";
             } else {
-                document.getElementById("downloadBtn").style.display = "none";
+                document.getElementById("runBtn").style.display = "none";
             }
         };
     </script>
