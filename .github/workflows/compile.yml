@@ -1,0 +1,37 @@
+name: Compile Python Script
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_name:
+        description: 'Name of the Python script to compile'
+        required: true
+        default: 'obf.py'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Compile Python script
+        run: |
+          pyinstaller --onefile --distpath ./dist --workpath ./build --specpath ./spec ${{ github.event.inputs.script_name }}
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v3
+        with:
+          name: script-executable
+          path: ./dist/
